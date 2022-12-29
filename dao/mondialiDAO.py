@@ -7,7 +7,12 @@ class MondialiDao:
         MySql.openConnection()
         MySql.query("select s.nazione from squadra s \
                     inner join organizzazione o on s.anno=o.anno \
-                    where s.nazione = o.nazione and s.posizioneInClassifica<>1 \
+                    where s.nazione <> o.nazione and s.posizioneInClassifica=1 \
+                    group by s.nazione \
+                    except \
+                    select s.nazione from squadra s \
+                    inner join organizzazione o on s.anno=o.anno \
+                    where s.nazione <> o.nazione and s.posizioneInClassifica=1 \
                     group by s.nazione;")
         data= MySql.getResults()
         result=[]
@@ -20,13 +25,15 @@ class MondialiDao:
     @classmethod
     def getAllHugeNationbyWC(cls):
         MySql.openConnection()
-        MySql.query("SELECT Anno, Nazione, COUNT(*) as NumeroConvocazioni \
-                    FROM Partecipazione p \
+        MySql.query("SELECT Anno, Nazione, COUNT(Nazione) as Convocazioni \
+                    FROM Partecipazione  p \
                     GROUP BY Anno, Nazione \
-                    HAVING COUNT(*) >= ALL (SELECT COUNT(*) \
-                        FROM Partecipazione \
-                        WHERE Anno = p.Anno \
-                        GROUP BY Nazione);")
+                    HAVING COUNT(Nazione) = (SELECT MAX(Convocati) \
+                        FROM ( \
+	                    SELECT Anno, Nazione, count(Nazione) as Convocati \
+	                    FROM Partecipazione \
+                        WHERE anno=P.anno \
+	                    GROUP BY Anno, Nazione) s );")
         data= MySql.getResults()
         result=[]
         for i in data:
